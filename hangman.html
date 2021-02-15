@@ -1,0 +1,193 @@
+<!-- 
+       _         _        _ _ _ _ _ _ _
+     /_/       /_//     /_/_/_/_/_/_/_/
+    /_/_/     /_//_/  /_//_/
+   /_/ /_/   /_/ /_//_/ /_/_ _ _ _
+  /_/   /_/ /_/   /_/  /_/_/_/_/_/
+ /_/     /_/_/        /_/
+/_/       /_/        /_/
+
+	NOSSON M FRANKEL
+	nossonmfrankel@gmail.com
+	ALL RIGHTS RESERVED, 2020
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Hangman</title>
+	<style>
+		html, body{
+			width: 100vw;
+			height: 100vh;
+			margin: 0px;
+			text-align: center;
+			font-family: Arial, Helvetica, sans-serif;
+		}
+		/* msg pop-down */
+		#msg{
+			position: relative;
+			top: -100px;
+			width: 350px;
+			margin: 0 auto;
+			padding: 15px 25px;
+			font-size: 2rem;
+			font-weight: 700;
+			border-radius: 0px 0px 8px 8px;
+			background: rgb(214, 214, 214);
+			text-align: center;
+			transition: all cubic-bezier(0.075, 0.82, 0.165, 1) 250ms;
+		}
+		#msg.vis, #msg.amber, #msg.err{
+			top: 0px;
+		}
+		#msg.amber{
+			background: #fec80f;
+		}
+		#msg.err{
+			background: #ec1a23;
+			color: #fff;
+		}
+		#currentWord{
+			height: 50px;
+			width: 100vw;
+		}
+		#currentWord .letter{
+			display: inline-block;
+			width: 15px;
+			height: 15px;
+			margin: 0 10px;
+			border-bottom: 2px solid black;
+		}
+	</style>
+</head>
+<body>
+	<!-- have a night mode that turns on automatically -->
+	
+	<div id="msg">&nbsp;</div>
+
+	<div id="currentWord">
+		<!-- autofill letter spaces here -->
+	</div>
+
+	<div id="guessesLeft"><span id="guessCount">N/A</span> Guesses left</div>
+
+	<div id="letterGuessed"></div>
+
+
+	<!-- Javascript test -->
+	<div id="jsTest">JavaScript is not supported in your browser.</div>
+	
+	<script>
+		// remove js test
+		window.onreadystatechange = document.getElementById('jsTest').remove()
+
+		/* GAME LOGIC */
+		let currentGame,
+		wordLib = ['zero', 'one', 'two', 'three'],
+		currentWordEl = document.getElementById('currentWord')
+		guessCountEl = document.getElementById('guessCount'),
+		letterGuessedEl = document.getElementById('letterGuessed')
+
+		// Basic game logic => select words, keep track of letters picked, match picks
+		function Game(){
+			// select word and remove from array of words
+			let randIndex = Math.floor(Math.random()*wordLib.length)
+			this.currentWord = wordLib[randIndex]
+			wordLib.splice(randIndex, 1)
+			// keep track of all other details
+			this.guessesLeft = 15-this.currentWord.length
+			guessCountEl.innerText = this.guessesLeft
+			this.filledCount = 0
+			this.guesses = []
+
+			// insert blank spaces to show length of word
+			this.fillLetters = ((guess = []) => {
+				Promise.all([...this.currentWord].map((letter, i) =>{
+					let letterEl = document.createElement('span')
+					letterEl.classList.add('letter')
+					letterEl.innerHTML = guess.indexOf(i) >= 0? letter: '&nbsp;'
+					currentWordEl.append(letterEl)
+				}))
+			})
+
+			// check if the user's guess matches any letters of the word
+			this.guess = (usersGuess => {
+				if(this.guesses.indexOf(usersGuess)>=0) return false
+				this.guesses.push(usersGuess)
+
+				// track this rounds change
+				let startFillCount = this.filledCount
+
+				Promise.all([...this.currentWord].map((letter, i) =>{
+					if(letter.toLowerCase() == usersGuess){
+						// update element
+						console.log(`letter matches at index - ${i} | update this element`)
+						this.fillLetters([i])
+						// track change torwards completing word
+						this.filledCount++
+					}
+				}))
+
+				// letter guessed does not exist in word
+				if(startFillCount === this.filledCount){
+					// subtract remaining guesses
+					this.guessesLeft--
+					guessCountEl.innerText = this.guessesLeft
+					// show wrong guesses
+					let wrongGuess = document.createElement('span')
+					wrongGuess.innerText = usersGuess
+					letterGuessedEl.append(wrongGuess)
+				}
+
+				return startFillCount < this.filledCount
+			})
+
+			this.winCheck = (()=>{
+				return currentGame.filledCount === currentGame.currentWord
+			})
+		}
+
+		// start new game and maintain object
+		function initGame(){
+			if(wordLib.length === 0) return
+			currentGame = new Game()
+			currentGame.fillLetters()
+			console.log(`The word to guess is '${currentGame.currentWord}'`)
+		}
+		initGame()
+
+
+		/* MANAGE GAME INPUTS */
+		// open mobile keyboard
+		window.onkeypress = (e => {
+			if(e.key.length !== 1 && e.key >= 0) return
+
+			// set what key was pressed
+			let guess = e.key
+			// console.log(`The '${guess}' key was pressed`)
+
+			// if user can still guess => execute guess
+			if(currentGame.filledCount != currentGame.currentWord && currentGame.guessesLeft > 0) currentGame.guess(guess)
+
+			currentGame.winCheck()
+		})
+
+		// display a meesage to the user
+		let msgEl = document.getElementById('msg'),
+		popCount = 0
+		function displayMsg(msg = 'No message defined', type = 'vis', dura = 3500){
+			popCount++
+			msgEl.innerText = msg
+			msgEl.classList.add(type)
+
+			setTimeout(() => {
+				popCount--
+				msgEl.classList.remove(type)
+				if(!popCount) msgEl.innerHTML = '&nbsp;'
+			}, dura)
+		}
+	</script>
+</body>
+</html>

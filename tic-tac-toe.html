@@ -1,0 +1,311 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+	<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Tic Tac Toe</title>
+		<style>
+			body{
+				font-family: arial;
+				text-align: center;
+				margin-top: 8vh;
+				user-select: none;
+			}
+			.row{
+				display:block;
+				margin: 5px 0;
+			}
+			.row:first-child .box{
+				border-top: none;
+			}
+			.row:last-child .box{
+				border-bottom: none;
+			}
+			.box{
+				cursor:pointer;
+				display:inline-block;
+				border: 1px solid black;
+				width:100px;
+				height:100px;
+				line-height:100px;
+				font-size: 48px;
+				font-weight: 700;
+				text-align:center;
+				transition: all 500ms ease-in-out 0s;
+			}
+			.box:first-child{
+				border-left: none;
+			}
+			.box:last-child{
+				border-right: none;
+			}
+			.box.x::before{
+				content: 'X';
+				padding-left: 15px;
+			}
+			.box.o::before{
+				content: 'O';
+				padding-left: 15px;
+			}
+			.box.win{
+				animation: win 1000ms ease-in-out 0s infinite;
+			}
+			.box.lose{
+				animation: lose 1000ms ease-in-out 0s infinite;
+			}
+			#restart{
+				position: absolute;
+				bottom: 20px;
+				left: 0;
+				right: 0;
+				width: 300px;
+				margin: 0 auto;
+				background:orangered;
+				color:white;
+				text-transform:uppercase;
+				cursor:pointer;
+				-webkit-user-select:none;
+				display:inline-block;
+				padding: 10px;
+				font-size: 48px;
+			}
+@keyframes win{
+	50%{
+		background: #00a233;
+		color: white;
+	}	
+}
+@keyframes lose{
+	50%{
+		background: #f1002c;
+		color: white;
+	}	
+}
+		</style>
+	</head>
+	<body>
+
+		<div id='container'>
+			<div class='row'>
+				<div class='box' onclick='move(event);' value='0'>&nbsp;</div>
+				<div class='box' onclick='move(event);' value='1'>&nbsp;</div>
+				<div class='box' onclick='move(event);' value='2'>&nbsp;</div>
+			</div>
+			<div class='row'>
+				<div class='box' onclick='move(event);' value='3'>&nbsp;</div>
+				<div class='box' onclick='move(event);' value='4'>&nbsp;</div>
+				<div class='box' onclick='move(event);' value='5'>&nbsp;</div>
+			</div>
+			<div class='row'>
+				<div class='box' onclick='move(event);' value='6'>&nbsp;</div>
+				<div class='box' onclick='move(event);' value='7'>&nbsp;</div>
+				<div class='box' onclick='move(event);' value='8'>&nbsp;</div>
+			</div>
+		</div>
+
+		<div id='restart' onclick='restart();'>Restart</div>
+
+		<script>
+			var boxes = document.querySelectorAll('.box'),
+			pause = 0,
+			boxMatrix = [
+				['empty', 'empty', 'empty'],
+				['empty', 'empty', 'empty'],
+				['empty', 'empty', 'empty']
+			],
+			openBoxes = 9;
+
+			let smallerWay = innerWidth < innerHeight? innerWidth: innerHeight
+			boxes.forEach(box => {
+					box.style.lineHeight = `${smallerWay/4}px`
+					box.style.width = `${smallerWay/4}px`
+					box.style.height = `${smallerWay/4}px`
+			})
+
+			function restart(){
+				// reset game
+				for(i=0; i<boxes.length; i++){
+					boxes[i].classList.remove('x');
+					boxes[i].classList.remove('o');
+					boxes[i].innerHTML='&nbsp;';
+					boxes[i].classList.remove('win');
+					boxes[i].classList.remove('lose');
+				}
+				pause = 0;
+				boxMatrix = [
+					['empty', 'empty', 'empty'],
+					['empty', 'empty', 'empty'],
+					['empty', 'empty', 'empty']
+				];
+				openBoxes = 9;
+			}
+
+			function computer(){
+				if (!checkForwin()) {
+					// use logic to guess best place
+					for (var i = boxMatrix.length - 1; i >= 0; i--){
+						// check rows then columns
+						if (boxMatrix[i][0]==boxMatrix[i][1]&&boxMatrix[i][0]!='empty'||
+							boxMatrix[i][0]==boxMatrix[i][2]&&boxMatrix[i][0]!='empty'||
+							boxMatrix[i][1]==boxMatrix[i][2]&&boxMatrix[i][1]!='empty'){
+							for (var j = boxMatrix[i].length - 1; j >= 0; j--) {
+								if(boxMatrix[i][j]=='empty'){
+									return ((i*boxMatrix[i].length)+j);
+								}
+							}
+						}else if(boxMatrix[0][i]==boxMatrix[1][i]&&boxMatrix[0][i]!='empty'||
+								 boxMatrix[0][i]==boxMatrix[2][i]&&boxMatrix[0][i]!='empty'||
+								 boxMatrix[1][i]==boxMatrix[2][i]&&boxMatrix[1][i]!='empty'){
+							for (var j = boxMatrix[i].length - 1; j >= 0; j--) {
+								if(boxMatrix[j][i]=='empty'){
+									return ((j*boxMatrix[j].length)+i);
+								}
+							}
+						}
+					}
+
+					if (boxMatrix[0][0]==boxMatrix[1][1]&&boxMatrix[0][0]!='empty'||
+						boxMatrix[0][0]==boxMatrix[2][2]&&boxMatrix[0][0]!='empty'||
+						boxMatrix[1][1]==boxMatrix[2][2]&&boxMatrix[1][1]!='empty'){
+						if (boxMatrix[0][0]==boxMatrix[1][1]&&boxMatrix[2][2]=='empty'){
+							return 8;
+						}else if(boxMatrix[0][0]==boxMatrix[2][2]&&boxMatrix[1][1]=='empty'){
+							return 4;
+						}else if(boxMatrix[1][1]==boxMatrix[2][2]&&boxMatrix[0][0]=='empty'){
+							return 0;
+						}
+					}else if(boxMatrix[0][2]==boxMatrix[1][1]&&boxMatrix[0][2]!='empty'||
+							 boxMatrix[0][2]==boxMatrix[2][0]&&boxMatrix[2][0]!='empty'||
+							 boxMatrix[1][1]==boxMatrix[2][0]&&boxMatrix[2][0]!='empty'){
+						if (boxMatrix[0][2]==boxMatrix[1][1]&&boxMatrix[2][0]=='empty'){
+							return 6;
+						}else if(boxMatrix[0][2]==boxMatrix[2][0]&&boxMatrix[1][1]=='empty'){
+							return 4;
+						}else  if(boxMatrix[1][1]==boxMatrix[2][0]&&boxMatrix[0][2]=='empty'){
+							return 2;
+						}
+					}
+
+					// pick random number
+					var pick = Math.floor(Math.random()*openBoxes),
+					passedOpenBoxes = -1;
+
+					// select the i-th empty box; i = random number
+					for (var i = 0; i < boxMatrix.length*boxMatrix[0].length; i++){
+						if (boxMatrix[Math.floor(i/3)][i%3]=='empty'){
+							passedOpenBoxes++;
+
+							if (passedOpenBoxes==pick){
+								return i;
+							}
+						}
+					}
+				}
+			}
+
+			function checkForwin(){
+				if (openBoxes <= 4){
+					for (var i = 0; i < 3; i++) {
+							if (boxMatrix[i][0]==boxMatrix[i][1]&&boxMatrix[i][1]==boxMatrix[i][2]&&boxMatrix[i][0]!='empty'&&boxMatrix[i][1]!='empty'){
+								console.log('- Win Detected - Row %s -', i);
+		console.table(boxMatrix);
+								Array.prototype.forEach.call(document.querySelectorAll('.row:nth-child('+(i+1)+')>.box'), function(box){
+									if (boxMatrix[i][0]=='x'){
+										box.classList.add('win');
+									}else{
+										box.classList.add('lose');
+									}
+								});
+
+								return true;
+							}else if(boxMatrix[0][i]==boxMatrix[1][i]&&boxMatrix[1][i]==boxMatrix[2][i]&&boxMatrix[0][i]!='empty'&&boxMatrix[1][i]!='empty'){
+								console.log('- Win Detected - Column %s -', i);
+		console.table(boxMatrix);
+								Array.prototype.forEach.call(document.querySelectorAll('.row>:nth-child('+(i+1)+')'), function(box){
+									if (boxMatrix[0][i]=='x'){
+										box.classList.add('win');
+									}else{
+										box.classList.add('lose');
+									}
+								});
+
+								return true;
+							}
+					}
+					if (boxMatrix[0][2]==boxMatrix[1][1]&&boxMatrix[1][1]==boxMatrix[2][0]&&boxMatrix[0][2]!='empty'&&boxMatrix[1][1]!='empty'){
+						console.log('- Win detected - Horizontal TR to BL');
+						console.table(boxMatrix);
+						if (boxMatrix[0][2]=='x'){
+							document.getElementsByClassName('box')[2].classList.add('win');
+							document.getElementsByClassName('box')[4].classList.add('win');
+							document.getElementsByClassName('box')[6].classList.add('win');
+						}else{
+							document.getElementsByClassName('box')[2].classList.add('lose');
+							document.getElementsByClassName('box')[4].classList.add('lose');
+							document.getElementsByClassName('box')[6].classList.add('lose');
+						}
+
+						var answer = true;
+					}
+					if (boxMatrix[0][0]==boxMatrix[1][1]&&boxMatrix[1][1]==boxMatrix[2][2]&&boxMatrix[0][0]!='empty'&&boxMatrix[1][1]!='empty'){
+						console.log('- Win detected - Horizontal TL to BR');
+						console.table(boxMatrix);
+						if (boxMatrix[0][0]=='x'){
+							document.getElementsByClassName('box')[0].classList.add('win');
+							document.getElementsByClassName('box')[4].classList.add('win');
+							document.getElementsByClassName('box')[8].classList.add('win');
+						}else{
+							document.getElementsByClassName('box')[0].classList.add('lose');
+							document.getElementsByClassName('box')[4].classList.add('lose');
+							document.getElementsByClassName('box')[8].classList.add('lose');
+						}
+
+						var answer = true;
+					}
+
+					if (answer){
+						return true;
+					}else{
+						return false;
+					}
+				}else{
+					return false;
+				}
+			}
+
+			function move(event){
+				// get vars needed to start recording move
+				var el = (event.target||srcElement);
+				var box = el.getAttribute('value');
+
+				// if box not selected and there are more moves and it's players turn and gime is not over
+				if(!(el.classList.contains('x')||el.classList.contains('o'))&&openBoxes>0&&pause==0&&!checkForwin()){
+					boxMatrix[Math.floor(box/3)][box%3]='x';
+					openBoxes--;
+					el.classList.add('x');
+					pause = 1;
+
+					setTimeout(function(){
+						if (openBoxes>0&&!checkForwin()){
+							// computer guessing
+							var pick = computer(box);
+							boxMatrix[Math.floor(pick/3)][pick%3]='o';
+							openBoxes--;
+							boxes[pick].classList.add('o');
+
+							pause = 0;
+							checkForwin();
+// console.clear();
+// console.log(pick);
+// console.table(boxMatrix);
+						}else{
+							checkForwin();
+						}
+					}, 750);
+				}else{
+					checkForwin();
+				}
+			}
+		</script>
+	</body>
+</html>

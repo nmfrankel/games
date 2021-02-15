@@ -1,0 +1,290 @@
+<!-- 
+       _         _        _ _ _ _ _ _ _
+     /_/       /_//     /_/_/_/_/_/_/_/
+    /_/_/     /_//_/  /_//_/
+   /_/ /_/   /_/ /_//_/ /_/_ _ _ _
+  /_/   /_/ /_/   /_/  /_/_/_/_/_/
+ /_/     /_/_/        /_/
+/_/       /_/        /_/
+
+	NOSSON M FRANKEL
+	nossonmfrankel@gmail.com
+	ALL RIGHTS RESERVED, 2020
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<!-- <meta name="viewport" content="width=device-width, initial-scale=1.0"> -->
+	<title>Stack Up</title>
+	<style type="text/css">
+		body{
+			margin: 0;
+			overflow: hidden;
+			background: royalblue;
+			color: #ffffff;
+			font: 2.5rem/1 monospace;
+			user-select: none;
+		}
+		#scoreContainer{
+			display: block;
+			position: absolute;
+			top: 0px;
+			right: 0px;
+			padding: 40px 50px;
+		}
+	</style>
+</head>
+<body>
+	<div id="scoreContainer" ondblclick="currentGame = new Game()">SCORE: <span id="score">0</span></div>
+	<canvas id="canvas"></canvas>
+
+	<script>
+		let scoreEl = document.getElementById('score')
+		let canvas = document.getElementById('canvas')
+		canvas.width = window.innerWidth
+		canvas.height = window.innerHeight,
+		headStart = false
+
+		let context = canvas.getContext('2d')
+		context.fillStyle = '#f4faff'
+		// context.fillStyle = '#333'
+
+		// Update canvas on resize
+		window.onresize = function(){
+			var img = context.getImageData(0, 0, canvas.width, canvas.height)
+			canvas.width = window.innerWidth
+			canvas.height= window.innerHeight
+			context.putImageData(img, 0, 0)
+			context.fillStyle = '#f4faff'
+		}
+
+		/* Game object */
+		function Game(){
+			//define game props
+			this.lvl = 1
+			this.score = 0
+			this.dir = 1
+			scoreEl.innerText = this.score
+			
+			// define box props
+			this.margin = 5
+			this.barWidth = 100 //innerWidth/8.7
+			this.barHeight = 100 //innerHeight/10.5
+
+			this.boxCount = 3
+			this.landed = []
+			this.modifying = 0
+			this.xStarting = 0
+			this.xEnding = innerWidth
+			
+			this.boxWidth = this.barWidth + this.margin
+
+			// moving position
+			this.x = innerWidth/2
+			this.y = innerHeight - 50
+			
+			// set speed
+			this.loopCount = -1
+			this.speed = 20
+
+			this.land = (() => {
+				// enable head start || hidden feature ||
+				if(this.landed.length > 0 /*&& this.landed.length < 5*/ && headStart){
+					this.x = this.landed.length==1? this.landed[0].x + (this.boxWidth * Math.floor(Math.random() * this.boxCount)): this.landed.slice(-1)[0].x
+					this.boxCount = Math.floor(Math.random() * this.boxCount) + 1
+				}
+
+				// prevent a landing of boxes off the screen
+				if(this.x <= 0 || this.x + ((this.boxWidth + this.margin) * this.boxCount) >= innerWidth){
+					console.log('skipped land', this.landed.length+1)
+					return
+				}
+
+				// find and cut off boxes that overhang previous row
+				let tempEnd = this.x + ((this.barWidth + this.margin) * this.boxCount)
+				if(this.x > this.xStarting) this.xStarting = this.x
+				if(tempEnd < this.xEnding) this.xEnding = tempEnd
+				// console.log(`overall start: ${this.xStarting} | overallEnd: ${this.xEnding} | this.x ${this.x}, this.xEnd ${tempEnd}`)
+
+				// chop of hanging boxes from left side
+				while (this.landed.length > 0 && this.boxCount > 0 && this.x < this.landed.slice(-1)[0].x){
+					this.x += this.boxWidth
+					this.boxCount--
+				}
+				// chop of hanging boxes from right side
+				while (this.landed.length > 0 && this.x + ((this.barWidth + this.margin) * this.boxCount) > this.landed.slice(-1)[0].xEnd){
+					this.boxCount--
+				}
+
+				// save location
+				this.landed.push({
+					x: this.x,
+					xEnd: this.x + ((this.boxWidth) * this.boxCount),
+					y: this.y,
+					boxCount: this.boxCount
+				})
+
+				// speed up box movement
+				this.speed-=2
+
+				// remove box as boxes stack closer to top
+				if(this.landed.length === 4 && this.boxCount > 2) this.boxCount = 2
+				if(this.landed.length === 8 && this.boxCount > 1) this.boxCount = 1
+
+				// start from begining of line
+				this.modifying = 1
+				if(this.boxCount > 0){
+					while ((!(this.landed.length % 2) && this.x - this.boxWidth > 0) || (this.landed.length % 2 && this.x + (this.boxWidth * this.boxCount) < innerWidth)){
+						this.x = this.landed.length % 2? this.x + this.boxWidth: this.x - this.boxWidth
+					}
+				}	
+
+				// redraw full window
+				if(this.boxCount) context.clearRect(0, 0, innerWidth, innerHeight)
+
+				this.landed.forEach((row, index)=>{
+					// get last row
+					let lastRow = currentGame.landed[index - 1] || []
+					// loop through each box
+					for(let i = 0; i < row.boxCount; i++){
+						// if(this.x < lastRow.x || this.xEnd > lastRow.xEnd) console.log(true)
+
+						context.fillStyle = '#ffc107'
+						context.fillRect(row.x + ((this.barWidth + this.margin) * i), row.y, this.barWidth, this.barHeight)
+						context.fillStyle = '#fff'
+					}
+				})
+				this.modifying = 0
+
+				// update score value
+				if(this.boxCount > 0) this.score += 2
+				scoreEl.innerText = this.score
+			})
+
+			this.update = (()=>{
+				// exit update if in middle external column change
+				if (this.modifying || !this.boxCount) return
+
+				// controls refresh speed
+				if(this.loopCount < (this.speed/2)){
+					this.loopCount++
+					return
+				}
+				
+				// reset counter
+				this.loopCount = 0
+
+				// switch directions
+				if((this.x + (this.boxWidth * (this.boxCount+1)) >= innerWidth && this.dir) || (this.x - this.boxWidth <= 0 && !this.dir)) this.dir = !this.dir
+
+				// move boxes one column over
+				this.x = this.dir? this.x + this.boxWidth: this.x - this.boxWidth
+
+				// draw boxes in new location
+				this.draw()
+			})
+
+			this.draw = (()=>{
+				// clear canvas
+				context.clearRect(0, 0, innerWidth, innerHeight - (this.margin * this.landed.length) - (this.landed.length * this.barHeight + this.margin))
+
+				// make some calcs for the boxes
+				let offset = this.barWidth + this.margin
+				this.y = innerHeight - ((this.landed.length + 1) * this.barHeight + (this.margin * 2)) - (this.margin * this.landed.length)
+
+				// draw boxes in new location
+				for (let i = 0; i < this.boxCount; i++){
+					context.fillRect(this.x + (offset*i), this.y, this.barWidth, this.barHeight)
+				}
+			})
+		}
+		// generate game object
+		let currentGame = new Game()
+		currentGame.draw()
+
+		// Animation Loop
+		function anim(){
+			requestAnimationFrame(anim)
+			currentGame.update()
+		}
+		anim()
+
+		/* CONTROLS */
+		// handle playing events
+		window.onkeydown = (e => {
+			if(e.keyCode === 32) setTimeout(currentGame.land(), Math.floor(Math.random()*currentGame.speed*2)+35)
+			// if(e.keyCode === 32) currentGame.land()
+			if(e.keyCode === 114 || e.keyCode === 82) currentGame = new Game()
+			if(e.keyCode === 47 || e.keyCode === 191) headStart = !headStart// headStart = 1
+			// console.log(e.keyCode, e.key)
+		})
+		/*window.onkeyup = (e => {
+			if(e.keyCode === 47) headStart = 0
+		}) */
+		window.onpointerdown = (()=>{
+			setTimeout(currentGame.land(), Math.floor(Math.random()*currentGame.speed*2)+35)
+			// currentGame.land()
+		})
+
+
+
+
+
+
+
+
+		/* let touchDuration = 200
+		let timerInterval
+
+		function timer(interval){
+			interval--
+			if(interval >= 0){
+				timerInterval = setTimeout(() => {
+					timer(interval)
+				})
+			}else{
+				tapHold()
+			}
+		}
+		
+		function touchStart(){
+			timer(touchDuration)
+		}
+		function touchEnd(){
+			clearTimeout(timerInterval)
+		}
+		function tapHold(){
+			console.log('taphold')
+		}
+
+		canvas.addEventListener('touchstart', touchStart)
+		canvas.addEventListener('touchend', touchEnd) */
+	</script>
+</body>
+</html>
+
+<!-- 
+//\     //\\     //||||||||
+// \\   // \\   // //
+//  \\  //  \\//   //
+//   \\ //         //|||
+//     \//         //
+
+
+       _           _        _ _ _ _ _ _ _
+     /_/         /_//     /_/_/_/_/_/_/_/
+    /_/_/       /_//_/  /_/ /_/
+   /_/ /_/     /_/ /_//_/  /_/_ _ _ _
+  /_/   /_/   /_/   /_/   /_/_/_/_/_/
+ /_/     /_/ /_/         /_/
+/_/       /_/_/         /_/
+
+
+ _ _     _       _ _ _ _ _ 
+|_|_|   |_|_   _|_|_|_|_|_|
+|_||_|  |_|_|_|_|_|_ _ 
+|_| |_| |_| |_| |_|_|_|
+|_|  |_||_|     |_|
+|_|   |_|_|     |_|
+ -->
