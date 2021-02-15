@@ -1,3 +1,4 @@
+
 <!-- 
        _         _        _ _ _ _ _ _ _
      /_/       /_//     /_/_/_/_/_/_/_/
@@ -19,76 +20,137 @@
 	<title>Hangman</title>
 	<style>
 		html, body{
+			position: relative;
 			width: 100vw;
 			height: 100vh;
 			margin: 0px;
 			text-align: center;
+			font-size: 25px;
 			font-family: Arial, Helvetica, sans-serif;
 		}
-		/* msg pop-down */
-		#msg{
-			position: relative;
-			top: -100px;
-			width: 350px;
-			margin: 0 auto;
-			padding: 15px 25px;
-			font-size: 2rem;
+		#inputBox, #inputBox:active{
+			border: none;
+			outline: none;
+			height: 30px;
+			cursor: default;
+			caret-color: transparent;
+			color: transparent;
+			background: transparent;
+		}
+		#guessesLeft{
+			padding-top: 5vh;
 			font-weight: 700;
-			border-radius: 0px 0px 8px 8px;
-			background: rgb(214, 214, 214);
-			text-align: center;
-			transition: all cubic-bezier(0.075, 0.82, 0.165, 1) 250ms;
-		}
-		#msg.vis, #msg.amber, #msg.err{
-			top: 0px;
-		}
-		#msg.amber{
-			background: #fec80f;
-		}
-		#msg.err{
-			background: #ec1a23;
-			color: #fff;
 		}
 		#currentWord{
-			height: 50px;
+			padding-top: 25vh;
 			width: 100vw;
 		}
 		#currentWord .letter{
 			display: inline-block;
-			width: 15px;
-			height: 15px;
+			width: 50px;
+			height: 50px;
+			font-size: 50px;
+			line-height: 1;
 			margin: 0 10px;
 			border-bottom: 2px solid black;
 		}
+		#currentWord .letter:first-child{
+			text-transform: uppercase;
+		}
+		#lettersGuessed{
+			padding-top: 5vh;
+			letter-spacing: 5px;
+		}
+		#endGame{
+			position: absolute;
+			top: -2rem;
+			left: 0;
+			right: 0;
+			margin: 0 auto;
+			font-size: 2rem;
+			font-weight: 900;
+			color: coral;
+			transition: all cubic-bezier(0.6, 0, 0.2, 1) 250ms;
+		}
+		#endGame:not(:empty){
+			top: calc(50vh - 1rem);
+		}
+		#newGame{
+			min-width: 140px;
+			box-sizing: content-box;
+			position: absolute;
+			bottom: 10vh;
+			left: 0px;
+			right: 0px;
+			margin: 0 auto;
+			padding: .5rem 1rem;
+			font-size: 1rem;
+			letter-spacing: 1px;
+			border: none;
+			border-radius: 8px;
+			color: #fff;
+			background: #db3214;
+			box-shadow: 0px 0px 10px 1px rgb(237, 240, 243);
+		}
+		canvas{
+			position: absolute;
+			top: 0px;
+			left: 0px;
+			right: 0px;
+			width: 100vw;
+			height: 100vh;
+			z-index: -1;
+			display: none;
+		}
+		canvas#won{
+			display: block;
+		}
+		
+@media (prefers-color-scheme: dark) {
+	html{
+		background:  #333; 
+		color: white;
+	}
+	#currentWord .letter{
+		border-bottom-color: #fff8dc;
+	}
+	#newGame{
+		box-shadow: 0px 0px 10px 1px rgb(35 31 31);
+	}
+}
 	</style>
 </head>
 <body>
-	<!-- have a night mode that turns on automatically -->
-	
-	<div id="msg">&nbsp;</div>
+	<!-- open keyboard on mobile -->
+	<input type="text" id="inputBox" autocomplete="off" spellcheck="false">
+	<!-- setup our canvas element -->
+	<canvas id="canvas">Canvas and JavaScript are not supported in your browser</canvas>
+
+	<div id="guessesLeft" onclick="document.getElementById('inputBox').focus()"><span id="guessCount">N/A</span> Guesses left</div>
 
 	<div id="currentWord">
 		<!-- autofill letter spaces here -->
 	</div>
 
-	<div id="guessesLeft"><span id="guessCount">N/A</span> Guesses left</div>
+	<div id="lettersGuessed">&nbsp;</div>
 
-	<div id="letterGuessed"></div>
+	<div id="endGame"></div>
 
-
-	<!-- Javascript test -->
-	<div id="jsTest">JavaScript is not supported in your browser.</div>
+	<button id="newGame" onclick="initGame()">Restart</button>
 	
 	<script>
-		// remove js test
-		window.onreadystatechange = document.getElementById('jsTest').remove()
+		// remove js test and open keyboard on mobile
+		document.onload = document.getElementById('inputBox').focus()
 
 		/* GAME LOGIC */
 		let currentGame,
-		wordLib = ['zero', 'one', 'two', 'three'],
+		wordLib = ['apple', 'orange', 'computer', 'ring', 'restart', 'coffee','apple', 'blazer', 'birth', 'brandy', 'clamp', 'crush', 'discard', 'ratio', 'entrance', 'pants', 'skirt', 'table', 'penguin', 'pupil', 'finger', 'squint', 'slant', 'glaze', 'heroin', 'blond', 'sapphire', 'knuckle', 'knight', 'night', 'shackle', 'lapel', 'force', 'faucet', 'fridge', 'fryer', 'grapple', 'racist', 'whistle', 'wonder', 'washer', 'modern', 'hustle', 'haughty', 'switch', 'sixty', 'watch', 'rhombus', 'rythm', 'query', 'random', 'chair', 'avocado', 'package', 'compress', 'insanity', 'extreme', 'longer', 'picking', 'spleen', 'minute', 'hour', 'cracker', 'cake', 'time', 'card', 'master', 'chin', 'chicago', 'gluten', 'glue', 'clergy', 'slate', 'limestone', 'marble', 'impossible', 'smuggle', 'essential', 'because', 'sevenfold', 'silver', 'refined', 'outside', 'liability', 'futility', 'contemplate', 'repent', 'scholar', 'cruel', 'ingathered', 'redemption', 'similiar', 'pious', 'practice', 'display', 'primary', 'already', 'classy', 'wine', 'october', 'method', 'abusive', 'incoherent', 'incognito', 'koala', 'trait', 'basics', 'giraffe', 'bullet', 'hockey', 'racoon', 'estimate', 'flavor', 'sacrifice', 'resident', 'paradigm', 'diaphram', 'soil', 'tractate', 'landscape', 'latex', 'mountain', 'hangman', 'dragon', 'memory', 'wednesday', 'retribution', 'catalyst', 'vacuum', 'armpit', 'shower', 'protected', 'island', 'schizophrenic', 'cyclist', 'cringe', 'hyperbolic', 'mustache', 'miracle', 'stability', 'pistachio', 'picasso', 'sticcato', 'serial', 'creepy', 'create', 'crevice', 'hinge', 'screw', 'bowtie', 'window', 'snowboard', 'stoner', 'terrain', 'electric', 'baseboard', 'element', 'collection', 'coil', 'election', 'coli', 'covid', 'quarantine', 'pandemic', 'colic', 'colleague', 'solemn', 'cardiac', 'covert', 'tofu', 'alfalfa', 'amateur', 'antenna', 'epitome', 'epidermal', 'epidemic', 'gypsy', 'shampoo', 'sexist', 'flyer', 'dentist', 'mechanic', 'manic', 'zombie', 'mannequin', 'carousel', 'anthem', 'czar', 'squash', 'aneurism', 'pedophile', 'abstain', 'parlour', 'cataract', 'caucus', 'caucasian', 'flannel', 'bugle', 'mileage', 'cynical', 'oxygen', 'naughty', 'oxide', 'robot', 'skyward', 'orchard', 'artichoke', 'spinach', 'quiche', 'wrench', 'swindle', 'scarf', 'headache', 'clamp', 'scam', 'graphic', 'skim', 'molecular', 'omnivore', 'obey', 'retard', 'latino', 'dandruff', 'ukulele', 'velvet', 'juicy', 'village', 'ugly', 'vile', 'howl', 'heinous', 'knickers', 'fascist', 'icicle', 'bicycle'],
 		currentWordEl = document.getElementById('currentWord')
 		guessCountEl = document.getElementById('guessCount'),
-		letterGuessedEl = document.getElementById('letterGuessed')
+		lettersGuessedEl = document.getElementById('lettersGuessed'),
+		button = document.getElementById('newGame'),
+		endGameEl = document.getElementById('endGame'),
+		canvas = document.getElementById( 'canvas' )
 
 		// Basic game logic => select words, keep track of letters picked, match picks
 		function Game(){
@@ -97,34 +159,37 @@
 			this.currentWord = wordLib[randIndex]
 			wordLib.splice(randIndex, 1)
 			// keep track of all other details
-			this.guessesLeft = 15-this.currentWord.length
-			guessCountEl.innerText = this.guessesLeft
+			this.guessesLeft = 15 - Math.round(this.currentWord.length/2)
 			this.filledCount = 0
 			this.guesses = []
+			this.userWon = 0
 
 			// insert blank spaces to show length of word
-			this.fillLetters = ((guess = []) => {
+			this.fillLetters = (() => {
+				// empty element
+				currentWordEl.innerText = ''
+				// loop through current word
 				Promise.all([...this.currentWord].map((letter, i) =>{
+					// create new letter space
 					let letterEl = document.createElement('span')
 					letterEl.classList.add('letter')
-					letterEl.innerHTML = guess.indexOf(i) >= 0? letter: '&nbsp;'
+					letterEl.innerHTML = this.guesses.indexOf(letter) >= 0? letter: '&nbsp;'
 					currentWordEl.append(letterEl)
 				}))
 			})
 
 			// check if the user's guess matches any letters of the word
 			this.guess = (usersGuess => {
-				if(this.guesses.indexOf(usersGuess)>=0) return false
+				if(this.guesses.indexOf(usersGuess)>=0 || this.userWon) return false
+				// remember that this letter was picked
 				this.guesses.push(usersGuess)
-
 				// track this rounds change
 				let startFillCount = this.filledCount
 
 				Promise.all([...this.currentWord].map((letter, i) =>{
 					if(letter.toLowerCase() == usersGuess){
-						// update element
-						console.log(`letter matches at index - ${i} | update this element`)
-						this.fillLetters([i])
+						// display letter(s) in the word
+						this.fillLetters()
 						// track change torwards completing word
 						this.filledCount++
 					}
@@ -138,56 +203,345 @@
 					// show wrong guesses
 					let wrongGuess = document.createElement('span')
 					wrongGuess.innerText = usersGuess
-					letterGuessedEl.append(wrongGuess)
+					lettersGuessedEl.append(wrongGuess)
 				}
 
 				return startFillCount < this.filledCount
 			})
 
+			// check if user won or lost
 			this.winCheck = (()=>{
-				return currentGame.filledCount === currentGame.currentWord
+				let goodGuesses = 0
+				// loop through current word
+				Promise.all([...this.currentWord].map(letter =>{
+					if(this.guesses.indexOf(letter) >= 0) goodGuesses++
+				}))
+				//check if user got all letters or ran out of guesses
+				if(goodGuesses < this.currentWord.length) return false
+				// update elements on screen
+				endGameEl.innerText = 'YOU WON'
+				canvas.id = 'won'
+				this.userWon = 1
+				
+				return true
+			})
+			this.looseCheck = (()=>{
+				if(this.guessesLeft === 0)
+					this.guessesLeft--,
+					endGameEl.innerText = 'YOU LOST',
+					button.innerText = 'Try Again'
+
+				return this.guessesLeft <= 0
 			})
 		}
 
-		// start new game and maintain object
+		// start new game and update page as needed
 		function initGame(){
 			if(wordLib.length === 0) return
 			currentGame = new Game()
+			guessCountEl.innerText = currentGame.guessesLeft
+			lettersGuessedEl.innerText = ''
 			currentGame.fillLetters()
-			console.log(`The word to guess is '${currentGame.currentWord}'`)
+			endGameEl.innerText = ''
+			button.innerText = 'New Game'
+			canvas.id = ''
+			// console.log(`The word to guess is '${currentGame.currentWord}'`)
 		}
 		initGame()
 
 
 		/* MANAGE GAME INPUTS */
-		// open mobile keyboard
 		window.onkeypress = (e => {
-			if(e.key.length !== 1 && e.key >= 0) return
-
+			if(e.key.length !== 1 || e.code.length !== 4 || e.key >= 0) return
 			// set what key was pressed
 			let guess = e.key
-			// console.log(`The '${guess}' key was pressed`)
-
 			// if user can still guess => execute guess
-			if(currentGame.filledCount != currentGame.currentWord && currentGame.guessesLeft > 0) currentGame.guess(guess)
-
-			currentGame.winCheck()
+			if(currentGame.filledCount != currentGame.currentWord && currentGame.guessesLeft > 0)
+				if(currentGame.guess(guess))
+					currentGame.winCheck()
+				else
+					currentGame.looseCheck()
 		})
 
-		// display a meesage to the user
-		let msgEl = document.getElementById('msg'),
-		popCount = 0
-		function displayMsg(msg = 'No message defined', type = 'vis', dura = 3500){
-			popCount++
-			msgEl.innerText = msg
-			msgEl.classList.add(type)
 
-			setTimeout(() => {
-				popCount--
-				msgEl.classList.remove(type)
-				if(!popCount) msgEl.innerHTML = '&nbsp;'
-			}, dura)
-		}
+
+
+
+		// when animating on canvas, it is best to use requestAnimationFrame instead of setTimeout or setInterval
+			// not supported in all browsers though and sometimes needs a prefix, so we need a shim
+			window.requestAnimFrame = ( function() {
+				return window.requestAnimationFrame ||
+							window.webkitRequestAnimationFrame ||
+							window.mozRequestAnimationFrame ||
+							function( callback ) {
+								window.setTimeout( callback, 1000 / 60 );
+							};
+			})();
+
+			// now we will setup our basic variables for the demo
+			var ctx = canvas.getContext( '2d' ),
+			// full screen dimensions
+			cw = window.innerWidth,
+			ch = window.innerHeight,
+			// firework collection
+			fireworks = [],
+			// particle collection
+			particles = [],
+			// starting hue
+			hue = 120,
+			// when launching fireworks with a click, too many get launched at once without a limiter, one launch per 5 loop ticks
+			limiterTotal = 5,
+			limiterTick = 0,
+			// this will time the auto launches of fireworks, one launch per 80 loop ticks
+			timerTotal = 50,
+			timerTick = 0,
+			mousedown = false,
+			// mouse x coordinate,
+			mx,
+			// mouse y coordinate
+			my;
+					
+			// set canvas dimensions
+			canvas.width = cw;
+			canvas.height = ch;
+
+			// now we are going to setup our function placeholders for the entire demo
+
+			// get a random number within a range
+			function random( min, max ) {
+				return Math.random() * ( max - min ) + min;
+			}
+
+			// calculate the distance between two points
+			function calculateDistance( p1x, p1y, p2x, p2y ) {
+				var xDistance = p1x - p2x,
+						yDistance = p1y - p2y;
+				return Math.sqrt( Math.pow( xDistance, 2 ) + Math.pow( yDistance, 2 ) );
+			}
+
+			// create firework
+			function Firework( sx, sy, tx, ty ) {
+				// actual coordinates
+				this.x = sx;
+				this.y = sy;
+				// starting coordinates
+				this.sx = sx;
+				this.sy = sy;
+				// target coordinates
+				this.tx = tx;
+				this.ty = ty;
+				// distance from starting point to target
+				this.distanceToTarget = calculateDistance( sx, sy, tx, ty );
+				this.distanceTraveled = 0;
+				// track the past coordinates of each firework to create a trail effect, increase the coordinate count to create more prominent trails
+				this.coordinates = [];
+				this.coordinateCount = 3;
+				// populate initial coordinate collection with the current coordinates
+				while( this.coordinateCount-- ) {
+					this.coordinates.push( [ this.x, this.y ] );
+				}
+				this.angle = Math.atan2( ty - sy, tx - sx );
+				this.speed = 2;
+				this.acceleration = 1.05;
+				this.brightness = random( 50, 70 );
+				// circle target indicator radius
+				this.targetRadius = 1;
+			}
+
+			// update firework
+			Firework.prototype.update = function( index ) {
+				// remove last item in coordinates array
+				this.coordinates.pop();
+				// add current coordinates to the start of the array
+				this.coordinates.unshift( [ this.x, this.y ] );
+				
+				// cycle the circle target indicator radius
+				/*if( this.targetRadius < 8 ) {
+					this.targetRadius += 0.3;
+				} else {
+					this.targetRadius = 1;
+				}*/
+				this.targetRadius = 0;
+				
+				// speed up the firework
+				this.speed *= this.acceleration;
+				
+				// get the current velocities based on angle and speed
+				var vx = Math.cos( this.angle ) * this.speed,
+						vy = Math.sin( this.angle ) * this.speed;
+				// how far will the firework have traveled with velocities applied?
+				this.distanceTraveled = calculateDistance( this.sx, this.sy, this.x + vx, this.y + vy );
+				
+				// if the distance traveled, including velocities, is greater than the initial distance to the target, then the target has been reached
+				if( this.distanceTraveled >= this.distanceToTarget ) {
+					createParticles( this.tx, this.ty );
+					// remove the firework, use the index passed into the update function to determine which to remove
+					fireworks.splice( index, 1 );
+				} else {
+					// target not reached, keep traveling
+					this.x += vx;
+					this.y += vy;
+				}
+			}
+
+			// draw firework
+			Firework.prototype.draw = function() {
+				ctx.beginPath();
+				// move to the last tracked coordinate in the set, then draw a line to the current x and y
+				ctx.moveTo( this.coordinates[ this.coordinates.length - 1][ 0 ], this.coordinates[ this.coordinates.length - 1][ 1 ] );
+				ctx.lineTo( this.x, this.y );
+				ctx.strokeStyle = 'hsl(' + hue + ', 100%, ' + this.brightness + '%)';
+				ctx.stroke();
+				
+				ctx.beginPath();
+				// draw the target for this firework with a pulsing circle
+				ctx.arc( this.tx, this.ty, this.targetRadius, 0, Math.PI * 2 );
+				ctx.stroke();
+			}
+
+			// create particle
+			function Particle( x, y ) {
+				this.x = x;
+				this.y = y;
+				// track the past coordinates of each particle to create a trail effect, increase the coordinate count to create more prominent trails
+				this.coordinates = [];
+				this.coordinateCount = 5;
+				while( this.coordinateCount-- ) {
+					this.coordinates.push( [ this.x, this.y ] );
+				}
+				// set a random angle in all possible directions, in radians
+				this.angle = random( 0, Math.PI * 2 );
+				this.speed = random( 1, 10 );
+				// friction will slow the particle down
+				this.friction = 0.95;
+				// gravity will be applied and pull the particle down
+				this.gravity = 1;
+				// set the hue to a random number +-50 of the overall hue variable
+				this.hue = random( hue - 50, hue + 50 );
+				this.brightness = random( 50, 80 );
+				this.alpha = 1;
+				// set how fast the particle fades out
+				this.decay = random( 0.015, 0.03 );
+			}
+
+			// update particle
+			Particle.prototype.update = function( index ) {
+				// remove last item in coordinates array
+				this.coordinates.pop();
+				// add current coordinates to the start of the array
+				this.coordinates.unshift( [ this.x, this.y ] );
+				// slow down the particle
+				this.speed *= this.friction;
+				// apply velocity
+				this.x += Math.cos( this.angle ) * this.speed;
+				this.y += Math.sin( this.angle ) * this.speed + this.gravity;
+				// fade out the particle
+				this.alpha -= this.decay;
+				
+				// remove the particle once the alpha is low enough, based on the passed in index
+				if( this.alpha <= this.decay ) {
+					particles.splice( index, 1 );
+				}
+			}
+
+			// draw particle
+			Particle.prototype.draw = function() {
+				ctx. beginPath();
+				// move to the last tracked coordinates in the set, then draw a line to the current x and y
+				ctx.moveTo( this.coordinates[ this.coordinates.length - 1 ][ 0 ], this.coordinates[ this.coordinates.length - 1 ][ 1 ] );
+				ctx.lineTo( this.x, this.y );
+				ctx.strokeStyle = 'hsla(' + this.hue + ', 100%, ' + this.brightness + '%, ' + this.alpha + ')';
+				ctx.stroke();
+			}
+
+			// create particle group/explosion
+			function createParticles( x, y ) {
+				// increase the particle count for a bigger explosion, beware of the canvas performance hit with the increased particles though
+				var particleCount = 30;
+				while( particleCount-- ) {
+					particles.push( new Particle( x, y ) );
+				}
+			}
+
+			// main demo loop
+			function loop() {
+				// this function will run endlessly with requestAnimationFrame
+				requestAnimFrame( loop );
+				
+				// increase the hue to get different colored fireworks over time
+				//hue += 0.5;
+			  
+			  // create random color
+			  hue= random(0, 360 );
+				
+				// normally, clearRect() would be used to clear the canvas
+				// we want to create a trailing effect though
+				// setting the composite operation to destination-out will allow us to clear the canvas at a specific opacity, rather than wiping it entirely
+				ctx.globalCompositeOperation = 'destination-out';
+				// decrease the alpha property to create more prominent trails
+				ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+				ctx.fillRect( 0, 0, cw, ch );
+				// change the composite operation back to our main mode
+				// lighter creates bright highlight points as the fireworks and particles overlap each other
+				ctx.globalCompositeOperation = 'lighter';
+				
+				// loop over each firework, draw it, update it
+				var i = fireworks.length;
+				while( i-- ) {
+					fireworks[ i ].draw();
+					fireworks[ i ].update( i );
+				}
+				
+				// loop over each particle, draw it, update it
+				var i = particles.length;
+				while( i-- ) {
+					particles[ i ].draw();
+					particles[ i ].update( i );
+				}
+				
+				// launch fireworks automatically to random coordinates, when the mouse isn't down
+				if( timerTick >= timerTotal ) {
+					if( !mousedown ) {
+						// start the firework at the bottom middle of the screen, then set the random target coordinates, the random y coordinates will be set within the range of the top half of the screen
+						fireworks.push( new Firework( cw / 2, ch, random( 0, cw ), random( 0, ch / 2 ) ) );
+						timerTick = 0;
+					}
+				} else {
+					timerTick++;
+				}
+				
+				// limit the rate at which fireworks get launched when mouse is down
+				if( limiterTick >= limiterTotal ) {
+					if( mousedown ) {
+						// start the firework at the bottom middle of the screen, then set the current mouse coordinates as the target
+						fireworks.push( new Firework( cw / 2, ch, mx, my ) );
+						limiterTick = 0;
+					}
+				} else {
+					limiterTick++;
+				}
+			}
+/*
+			// mouse event bindings
+			// update the mouse coordinates on mousemove
+			canvas.addEventListener( 'mousemove', function( e ) {
+				mx = e.pageX - canvas.offsetLeft;
+				my = e.pageY - canvas.offsetTop;
+			});
+
+			// toggle mousedown state and prevent canvas from being selected
+			canvas.addEventListener( 'mousedown', function( e ) {
+				e.preventDefault();
+				mousedown = true;
+			});
+
+			canvas.addEventListener( 'mouseup', function( e ) {
+				e.preventDefault();
+				mousedown = false;
+			});
+*/
+			// once the window loads, we are ready for some fireworks!
+			window.onload = loop
 	</script>
 </body>
 </html>
